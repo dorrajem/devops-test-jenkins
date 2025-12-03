@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        SONAR_AUTH_TOKEN = credentials('SONAR_AUTH_TOKEN')
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -20,8 +16,9 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
+                // Assurez-vous que SonarQube est configuré sur Jenkins avec le nom 'sonar'
                 withSonarQubeEnv('sonar') {
-                    sh "mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN"
+                    sh 'mvn sonar:sonar'
                 }
             }
         }
