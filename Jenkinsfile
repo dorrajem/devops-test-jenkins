@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         maven "M2_HOME"  // Nom de ton installation Maven dans Jenkins
-        jdk "JDK17"      // Nom de ton JDK installé dans Jenkins
+
     }
 
     environment {
