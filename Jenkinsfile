@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'https://github.com/dorrajem/devops-test-jenkins.git'
+                git branch: 'main', url: 'https://github.com/dorrajem/devops-test-jenkins.git'
             }
         }
 
