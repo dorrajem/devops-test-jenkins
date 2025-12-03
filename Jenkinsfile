@@ -23,21 +23,21 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    withSonarQubeEnv("${SONAR_SERVER}") {
-                        sh """
-                           mvn sonar:sonar \
-                           -Dsonar.projectKey=devops-test \
-                           -Dsonar.projectName='devops-test' \
-                           -Dsonar.host.url=http://localhost:9000 \
-                           -Dsonar.login=${SONAR_AUTH_TOKEN}
-                        """
-                    }
-                }
+stage('SonarQube Analysis') {
+    steps {
+        withCredentials([string(credentialsId: 'SONAR_AUTH_TOKEN', variable: 'SONAR_AUTH_TOKEN')]) {
+            withSonarQubeEnv("${SONAR_SERVER}") {
+                sh """
+                   mvn sonar:sonar \
+                   -Dsonar.projectKey=devops-test \
+                   -Dsonar.projectName='devops-test' \
+                   -Dsonar.host.url=http://localhost:9000 \
+                   -Dsonar.login=${SONAR_AUTH_TOKEN}
+                """
             }
         }
+    }
+}
 
         stage("Quality Gate") {
             steps {
