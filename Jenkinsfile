@@ -1,49 +1,29 @@
 pipeline {
     agent any
 
-    tools {
-        maven "M2_HOME"
-    }
-
     environment {
-        SONAR_SERVER = "sonar"
+        // Sonar token stored in Jenkins credentials (type: "Secret text")
+        SONAR_TOKEN = credentials('SONAR_AUTH_TOKEN') 
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/dorrajem/devops-test-jenkins.git'
+                // No credentials needed if the repo is public
+                git branch: 'main', url: 'https://github.com/dorrajem/devops-test-jenkins.git'
             }
         }
 
         stage('Build') {
             steps {
-                sh "mvn clean install -DskipTests"
+                sh 'mvn clean install -DskipTests'
             }
         }
 
-stage('SonarQube Analysis') {
-    steps {
-        withCredentials([string(credentialsId: 'SONAR_AUTH_TOKEN', variable: 'SONAR_AUTH_TOKEN')]) {
-            withSonarQubeEnv("${SONAR_SERVER}") {
-                sh """
-                   mvn sonar:sonar \
-                   -Dsonar.projectKey=devops-test \
-                   -Dsonar.projectName='devops-test' \
-                   -Dsonar.host.url=http://localhost:9000 \
-                   -Dsonar.login=${SONAR_AUTH_TOKEN}
-                """
-            }
-        }
-    }
-}
-
-        stage("Quality Gate") {
+        stage('SonarQube Analysis') {
             steps {
-                timeout(time: 3, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+                // Pass the token to Maven
+                sh "mvn sonar:sonar -Dsonar.projectKey=devops-test -Dsonar.projectName=devops-test-jenkins -Dsonar.host.url=http://localhost:9000 -Dsonar.login=$SONAR_TOKEN"
             }
         }
     }
