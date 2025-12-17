@@ -214,7 +214,7 @@ EOF
                 }
             }
         }
-    
+    }
     post {
         always {
             // Archiver avant de nettoyer
@@ -233,5 +233,5 @@ EOF
             echo "❌ PIPELINE FAILED!"
         }
     }
-    }
+    
 }
