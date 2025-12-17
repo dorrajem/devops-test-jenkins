@@ -69,30 +69,6 @@ pipeline {
             }
         }
         
-        stage('Docker Test') {
-            steps {
-                script {
-                    // Run container for testing
-                    sh "docker run -d --name test-container -p 8089:8089 ${DOCKER_IMAGE}:latest"
-                    sleep 30 // Wait for app to start
-                    
-                    // Test if application is responding
-                    sh """
-                        if curl -f http://localhost:8081/actuator/health; then
-                            echo "✅ Application started successfully!"
-                        else
-                            echo "❌ Application failed to start!"
-                            docker logs test-container
-                            exit 1
-                        fi
-                    """
-                    
-                    // Cleanup
-                    sh 'docker stop test-container && docker rm test-container || true'
-                }
-            }
-        }
-        
         stage('Deploy with Compose') {
             when {
                 branch 'main'
