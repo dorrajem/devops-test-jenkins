@@ -233,5 +233,5 @@ EOF
             echo "❌ PIPELINE FAILED!"
         }
     }
-
+    }
 }
