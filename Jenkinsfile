@@ -32,7 +32,7 @@ pipeline {
                     mvn sonar:sonar \
                       -Dsonar.projectKey=devops-test-jenkins \
                       -Dsonar.host.url=http://127.0.0.1:9000 \
-                      -Dsonar.login=sqa_fa305978069c6ce615a002d5d4192a86913a13a2
+                      -Dsonar.login=sqa_0fa40e7d2d2e135777744238bd09793748bf87ad
                 '''
             }
         }
