@@ -96,21 +96,27 @@ services:
         }
     }
     
-    post {
-        always {
-            // Cleanup
-            sh 'docker ps -aq --filter "name=test-container" | xargs --no-run-if-empty docker rm -f || true'
-            sh 'docker logout || true'
-            cleanWs()
+post {
+    always {
+        script {
+            // Vérifier si des fichiers JAR existent avant d'archiver
+            def jarFiles = findFiles(glob: 'target/*.jar')
+            if (!jarFiles.isEmpty()) {
+                echo "Archiving ${jarFiles.size()} JAR file(s)"
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            } else {
+                echo "No JAR files found to archive in target/"
+            }
         }
-        success {
-            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-            echo "✅ Pipeline succeeded! Image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-        }
-        failure {
-            echo "❌ Pipeline failed!"
-            // Capture logs before cleanup
-            sh 'docker ps -a && docker logs test-container || true'
-        }
+        
+        sh 'docker logout || true'
+        cleanWs()
     }
+    success {
+        echo "✅ Pipeline succeeded! Docker image pushed: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+    }
+    failure {
+        echo "❌ Pipeline failed!"
+    }
+}
 }
