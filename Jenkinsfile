@@ -95,7 +95,9 @@ services:
                 }
             }
         }
-    }
+    
+
+    
     stage('Deploy to Kubernetes') {
             steps {
                 script {
@@ -212,42 +214,6 @@ EOF
                 }
             }
         }
-        
-        stage('Verify Deployment') {
-            steps {
-                script {
-                    echo "🔍 Vérification du déploiement..."
-                    
-                    // Attendre que les pods soient prêts
-                    sh "sleep 60"
-                    
-                    // Vérifier l'état
-                    sh """
-                        echo "=== Pods ==="
-                        kubectl get pods -n ${K8S_NAMESPACE}
-                        
-                        echo "=== Services ==="
-                        kubectl get svc -n ${K8S_NAMESPACE}
-                        
-                        echo "=== Logs Spring Boot ==="
-                        kubectl logs -n ${K8S_NAMESPACE} -l app=spring-app --tail=10 || echo "Logs non disponibles encore"
-                    """
-                    
-                    // Tester l'application
-                    sh """
-                        URL=\$(minikube service spring-service -n ${K8S_NAMESPACE} --url 2>/dev/null || echo "")
-                        if [ -n "\$URL" ]; then
-                            echo "🌐 URL de l'application: \$URL"
-                            echo "Testing application health..."
-                            curl -f \$URL/actuator/health && echo "✅ Application is healthy!" || echo "⚠️ Application health check failed"
-                        else
-                            echo "⚠️ Could not get service URL"
-                        fi
-                    """
-                }
-            }
-        }
-    }
     
     post {
         always {
@@ -267,4 +233,5 @@ EOF
             echo "❌ PIPELINE FAILED!"
         }
     }
+
 }
