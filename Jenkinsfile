@@ -73,7 +73,7 @@ pipeline {
             steps {
                 script {
                     // Run container for testing
-                    sh "docker run -d --name test-container -p 8081:8080 ${DOCKER_IMAGE}:latest"
+                    sh "docker run -d --name test-container -p 8089:8089 ${DOCKER_IMAGE}:latest"
                     sleep 30 // Wait for app to start
                     
                     // Test if application is responding
