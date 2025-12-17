@@ -10,6 +10,7 @@ pipeline {
         DOCKER_PASSWORD = '221JFT4743'
         DOCKER_IMAGE = "${DOCKER_USERNAME}/devops-test-jenkins"
         DOCKER_TAG = "${env.BUILD_NUMBER}"
+        K8S_NAMESPACE = 'devops'
     }
     
     stages {
@@ -91,6 +92,158 @@ services:
                     
                     // Deploy
                     sh 'docker-compose -f docker-compose.prod.yml up -d'
+                }
+            }
+        }
+    }
+    stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    echo "🚀 Déploiement sur Kubernetes..."
+                    
+                    // Créer le namespace s'il n'existe pas
+                    sh "kubectl create namespace ${K8S_NAMESPACE} 2>/dev/null || true"
+                    
+                    // 1. Déployer MySQL
+                    sh """
+                        kubectl apply -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: ${K8S_NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: root123
+        - name: MYSQL_DATABASE
+          value: springdb
+        ports:
+        - containerPort: 3306
+EOF
+                    """
+                    
+                    // 2. Créer le service MySQL
+                    sh """
+                        kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: ${K8S_NAMESPACE}
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+  type: ClusterIP
+EOF
+                    """
+                    
+                    // Attendre que MySQL soit prêt
+                    sh "sleep 30"
+                    
+                    // 3. Déployer l'application Spring Boot
+                    sh """
+                        kubectl apply -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-app
+  namespace: ${K8S_NAMESPACE}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spring-app
+  template:
+    metadata:
+      labels:
+        app: spring-app
+    spec:
+      containers:
+      - name: spring-app
+        image: ${DOCKER_IMAGE}:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql-service:3306/springdb
+        - name: SPRING_DATASOURCE_USERNAME
+          value: root
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: root123
+EOF
+                    """
+                    
+                    // 4. Créer le service NodePort
+                    sh """
+                        kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-service
+  namespace: ${K8S_NAMESPACE}
+spec:
+  selector:
+    app: spring-app
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  type: NodePort
+EOF
+                    """
+                    
+                    echo "✅ Déploiement Kubernetes terminé"
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    echo "🔍 Vérification du déploiement..."
+                    
+                    // Attendre que les pods soient prêts
+                    sh "sleep 60"
+                    
+                    // Vérifier l'état
+                    sh """
+                        echo "=== Pods ==="
+                        kubectl get pods -n ${K8S_NAMESPACE}
+                        
+                        echo "=== Services ==="
+                        kubectl get svc -n ${K8S_NAMESPACE}
+                        
+                        echo "=== Logs Spring Boot ==="
+                        kubectl logs -n ${K8S_NAMESPACE} -l app=spring-app --tail=10 || echo "Logs non disponibles encore"
+                    """
+                    
+                    // Tester l'application
+                    sh """
+                        URL=\$(minikube service spring-service -n ${K8S_NAMESPACE} --url 2>/dev/null || echo "")
+                        if [ -n "\$URL" ]; then
+                            echo "🌐 URL de l'application: \$URL"
+                            echo "Testing application health..."
+                            curl -f \$URL/actuator/health && echo "✅ Application is healthy!" || echo "⚠️ Application health check failed"
+                        else
+                            echo "⚠️ Could not get service URL"
+                        fi
+                    """
                 }
             }
         }
